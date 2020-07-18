@@ -1,0 +1,220 @@
+!
+! Last configuration change at 15:56:32 UTC Tue May 26 2020
+!
+version 15.6
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname {{ hostname }}
+!
+boot-start-marker
+boot-end-marker
+!
+!
+vrf definition PE
+ rd 10.1.2.0:1
+ !
+ address-family ipv4
+  route-target export 10.1.2.0:1
+  route-target import 10.4.5.0:1
+ exit-address-family
+!
+enable password pass
+!
+aaa new-model
+!
+!
+aaa group server tacacs+ gns3group
+ server name container
+!
+aaa authentication login default group gns3group local
+aaa authentication login CONSOLE none 
+!
+!
+!
+!
+!
+aaa session-id common
+ethernet lmi ce
+!
+!
+!
+mmi polling-interval 60
+no mmi auto-configure
+no mmi pvc
+mmi snmp-timeout 180
+!
+!
+!
+!
+!
+no ip icmp rate-limit unreachable
+!
+!
+!
+!
+!
+!
+ip domain lookup source-interface Loopback0
+ip domain name {{ domain_name }}
+ip name-server {{ name_server }}
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+username rich password 0 pass pri 15
+!
+redundancy
+!
+no cdp log mismatch duplex
+!
+ip tcp synwait-time 5
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address {{ lo0 }} {{ lo0_mask }}
+ ip ospf network point-to-point
+!
+!
+interface GigabitEthernet0/0
+ vrf forwarding PE
+ ip address {{ G0_0 }} {{ G0_0mask }}
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/1
+ ip address {{ G0_1 }} {{ G0_1mask }}
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/2
+ ip address {{ G0_2 }} {{ G0_2mask }}
+ duplex auto
+ speed auto
+ media-type rj45
+!
+!
+router eigrp PE1
+ !
+ address-family ipv4 unicast vrf PE autonomous-system 1
+  !
+  topology base
+   redistribute bgp 65000 metric 100000 100 255 1 150
+  exit-af-topology
+ {% for eigrp_network, eigrp_mask in eigrp.items() %}
+ network {{ eigrp_network }} {{ eigrp_mask}}
+ {% endfor %}
+ exit-address-family
+!
+router ospf 1
+ mpls ldp autoconfig
+ router-id {{ lo0 }}
+ {% for ospf_network, ospf_maskarea in ospf.items() %}
+ network {{ ospf_network }} {{ ospf_maskarea }} 
+ {% endfor %}
+
+!
+router bgp {{ local_as }}
+ bgp router-id {{ lo0 }}
+ bgp log-neighbor-changes
+ {% for bgp_network, bgp_mask in bgp.items() %}
+ network {{ bgp_network }} {{ bgp_mask}}
+ {% endfor %}
+ {% for bgpr_remote, bgpr_remas in bgpr.items() %}
+ neighbor {{ bgpr_remote }} remote-as {{ bgpr_remas }}
+ neighbor {{ bgpr_remote }} update-source Loopback0
+ !
+ {% endfor %}
+ !
+ address-family ipv4
+  neighbor 10.3.3.1 activate
+ exit-address-family
+ !
+ address-family vpnv4
+  neighbor 10.3.3.1 activate
+  neighbor 10.3.3.1 send-community extended
+ exit-address-family
+ !
+ address-family ipv4 vrf PE
+  redistribute {{ redist }}
+ exit-address-family
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip ssh version 2
+!
+!
+ip access-list extended VTY_ACCESS
+10 deny tcp host 20.1.1.3 any eq telnet
+20 permit tcp 10.0.0.0 0.0.0.255 any eq 22
+30 permit tcp 10.0.0.0 0.0.0.255 any eq telnet
+500 deny ip any any log
+!
+mpls ldp router-id Loopback0
+tacacs server container
+ address ipv4 {{ tacacs_server }}
+ key gns3
+!
+control-plane
+!
+banner exec ^C
+**************************************************************************
+* this is a test csv to router configuration using python and jinja      *
+* templates                                                              *
+**************************************************************************^C
+banner incoming ^C
+**************************************************************************
+* this is a test csv to router configuration using python and jinja      *
+* templates                                                              *
+**************************************************************************^C
+banner login ^C
+**************************************************************************
+* this is a test csv to router configuration using python and jinja      *
+* templates                                                              *
+**************************************************************************^C
+!
+ {% for ntp_pop, ntp_server in ntp.items() %}
+ ntp server {{ ntp_server }}
+ {% endfor %}
+ !
+line con 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ login authentication CONSOLE
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+line vty 0 4
+ access-class VTY_ACCESS in
+ transport input all
+!
+no scheduler allocate
+!
+!
+crypto key generate rsa general-keys modulus 4096
+ip ssh version 2
+end
+!

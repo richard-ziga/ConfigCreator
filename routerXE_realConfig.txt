@@ -1,0 +1,224 @@
+
+!
+! Last configuration change at 15:56:32 UTC Tue May 26 2020
+!
+version 15.6
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname PE1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+vrf definition PE
+ rd 10.1.2.0:1
+ !
+ address-family ipv4
+  route-target export 10.1.2.0:1
+  route-target import 10.4.5.0:1
+ exit-address-family
+!
+enable password pass
+!
+aaa new-model
+!
+!
+aaa group server tacacs+ gns3group
+ server name container
+!
+aaa authentication login default group gns3group local
+aaa authentication login CONSOLE none 
+!
+!
+!
+!
+!
+aaa session-id common
+ethernet lmi ce
+!
+!
+!
+mmi polling-interval 60
+no mmi auto-configure
+no mmi pvc
+mmi snmp-timeout 180
+!
+!
+!
+!
+!
+no ip icmp rate-limit unreachable
+!
+!
+!
+!
+!
+!
+ip domain lookup source-interface Loopback0
+ip domain name gns3lab.lab
+ip name-server 192.168.1.10
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+username rich password 0 pass pri 15
+!
+redundancy
+!
+no cdp log mismatch duplex
+!
+ip tcp synwait-time 5
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address 10.1.1.1 255.255.255.255
+ ip ospf network point-to-point
+!
+interface Loopback1
+ ip address 10.1.1.2 255.255.255.255
+!
+interface GigabitEthernet0/0
+ ip address 10.2.3.2 255.255.255.0
+ ip ospf network point-to-point
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/1
+ vrf forwarding PE
+ ip address 10.1.2.2 255.255.255.0
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/2
+ no ip address
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/3
+ no ip address
+ duplex auto
+ speed auto
+ media-type rj45
+!
+!
+router eigrp PE1
+ !
+ address-family ipv4 unicast vrf PE autonomous-system 1
+  !
+  topology base
+   redistribute bgp 65000 metric 100000 100 255 1 150
+  exit-af-topology
+  network 10.1.2.0 0.0.0.255
+ exit-address-family
+!
+router ospf 1
+ mpls ldp autoconfig
+ router-id 10.1.1.1
+ network 10.1.1.1 0.0.0.0 area 0
+ network 10.2.3.0 0.0.0.255 area 0
+!
+router bgp 65000
+ bgp router-id 10.1.1.1
+ bgp log-neighbor-changes
+ neighbor 10.3.3.1 remote-as 65000
+ neighbor 10.3.3.1 update-source Loopback0
+ !
+ address-family ipv4
+  neighbor 10.3.3.1 activate
+ exit-address-family
+ !
+ address-family vpnv4
+  neighbor 10.3.3.1 activate
+  neighbor 10.3.3.1 send-community extended
+ exit-address-family
+ !
+ address-family ipv4 vrf PE
+  redistribute eigrp 1
+ exit-address-family
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip ssh version 2
+!
+!
+!
+mpls ldp router-id Loopback0
+tacacs server container
+ address ipv4 192.168.1.11
+ key gns3
+!
+!
+!
+control-plane
+!
+banner exec ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+banner incoming ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+banner login ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+!
+line con 0
+ login authentication CONSOLE
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+line vty 0 4
+ transport input all
+!
+no scheduler allocate
+!
+end
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+
+PE1#

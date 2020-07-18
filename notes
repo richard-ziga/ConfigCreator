@@ -1,0 +1,57 @@
+this will create multiple router configs from one csv(excel) file nameing the the 
+configs by the hostname and iterating through certain parts of the config
+the iteration part is limited to two fields so those with more or less fields
+I had to create a work around which I implemented in the csv, very simple
+I added a pop column for those with one field and combined two columns into one such as below:
+,ospf_maskarea1,
+,0.0.0.255 area 0,
+
+I have not yet created nxos, xr or switches version, just ios router
+
+
+
+
+
+""" As you are in python3 , use dict.items() instead of dict.iteritems()
+
+iteritems() was removed in python3, so you can't use this method anymore.
+
+Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated: 
+During handling of the above exception, another exception occurred:
+
+> p render.py 
+Traceback (most recent call last):
+  File "render.py", line 73, in <module>
+    f.write(template.render(row))
+  File "/usr/lib/python3/dist-packages/jinja2/asyncsupport.py", line 76, in render
+    return original_render(self, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/jinja2/environment.py", line 1008, in render
+    return self.environment.handle_exception(exc_info, True)
+  File "/usr/lib/python3/dist-packages/jinja2/environment.py", line 780, in handle_exception
+    reraise(exc_type, exc_value, tb)
+  File "/usr/lib/python3/dist-packages/jinja2/_compat.py", line 37, in reraise
+    raise value.with_traceback(tb)
+  File "/home/megamind/AUTOMATION/playground/demo_host_csv_template_render/cisco.j2", line 68, in <module>
+    {% for vlan_name, vlan_id in vlans.iteritems() %}
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'iteritems'"""
+
+
+
+
+    ntp_fields = {
+        field_name: field_value
+        for field_name, field_value in row.copy().items()
+        if field_name.startswith('ntp_') and row.pop(field_name)
+        if field_value != '0'
+    }
+
+    # now that we have that field list, we want to map the "vlan_name_<n>"
+    # values to the actual "vlan_id_<n>" values.  we want to create a new
+    # entry in the original dictionary called 'vlans' to store this new
+    # vlan dictionary.  We also need to handle the case when the vlan name
+    # has whitespace; so covert spaces to underscores (_).
+
+    row['ntp'] = {
+        ntp_fields[n].replace(' ', '_'): ntp_fields[n.replace('server')]
+        for n in ntp_fields if n.startswith('ntp_server')
+    }
